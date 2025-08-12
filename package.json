@@ -1,0 +1,17 @@
+{
+  "name": "professional-platform-backend",
+  "version": "1.0.0",
+  "description": "Imagine you're a freelance plumber, electrician, or HVAC technician. You often encounter unique problems on the job. You can't just Google \"weird humming noise from a specific model of boiler from 1995\" and get a perfect answer. You need advice from other professionals who have faced the same exact problem.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Shivam Yadav",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
