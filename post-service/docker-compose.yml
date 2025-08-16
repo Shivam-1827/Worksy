@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Main API service
+  post-api:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    container_name: post-api
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - ACCESS_TOKEN_SECRET=2f4fdedb11e8bb76c8c38c5f026f287234496eff
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - rabbitmq
+      - redis
+
+   # A separate service for the embedding worker
+  embedding-worker:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    container_name: embedding-worker
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: node src/workers/embedding.worker.js
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL_DOCKER=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - rabbitmq
+      - redis
+
+  # Redis
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5673:5672"   # host 5673 → container 5672
+      - "15673:15672" # management UI host 15673 → container 15672
+
+volumes:
+  post_pg_data:
