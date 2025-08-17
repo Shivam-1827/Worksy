@@ -1,5 +1,3 @@
-// /post-service/services/post.service.js
-
 const Post = require("../models/post.model");
 const logger = require("../utils/logger");
 const { getChannel } = require("../config/rabbitmq");
@@ -7,83 +5,115 @@ const { getChannel } = require("../config/rabbitmq");
 class PostService {
   async createPost(postData, file) {
     try {
-      const { userId, title, content, professionalTags, postType, mediaUrl } =
-        postData;
+      const {
+        userId,
+        title,
+        content,
+        professionalTags,
+        postType,
+        mediaUrl,
+        metadata,
+      } = postData;
 
-      // Normalize tags into an array
+      logger.info(`Creating post of type ${postType} for user ${userId}`);
+
+      // --- Normalize tags ---
       let tags = professionalTags;
       if (typeof tags === "string") {
         try {
-          tags = JSON.parse(tags); // case: stringified array
+          tags = JSON.parse(tags);
         } catch {
-          tags = tags.split(",").map((t) => t.trim()); // case: comma-separated
+          tags = tags.split(",").map((t) => t.trim());
         }
       }
-      if (!Array.isArray(tags)) {
-        tags = tags ? [tags] : [];
+      if (!Array.isArray(tags)) tags = tags ? [tags] : [];
+      tags = tags.filter(Boolean); // remove empty strings
+
+      let finalUrl;
+      let finalMetadata = metadata || null;
+
+      // --- Handle file and mediaUrl priority ---
+      if (file && (file.secure_url || file.path)) {
+        finalUrl = file.secure_url || file.path;
+        finalMetadata = {
+          public_id: file.public_id || null,
+          url: finalUrl,
+          file_name:
+            file.original_filename ||
+            file.originalname ||
+            file.filename ||
+            null,
+          format: file.format || finalUrl.split(".").pop(),
+          file_size: file.bytes || file.size || 0,
+        };
+        logger.info(`Using uploaded file URL: ${finalUrl}`);
+      } else if (mediaUrl) {
+        finalUrl = mediaUrl;
+        logger.info(`Using provided mediaUrl: ${finalUrl}`);
+      } else if (metadata?.url) {
+        finalUrl = metadata.url;
+        finalMetadata = {
+          ...metadata,
+          public_id: metadata.public_id || null,
+          file_size: metadata.file_size || 0,
+          file_name: metadata.file_name || metadata.url.split("/").pop(),
+          format: metadata.format || metadata.url.split(".").pop(),
+        };
+        logger.info(`Using metadata URL: ${finalUrl}`);
       }
 
-      let post;
-      const status = "PROCESSING";
+      // --- Validate required media URL for non-ARTICLE ---
+      if (postType !== "ARTICLE" && !finalUrl) {
+        throw new Error(`File or mediaUrl is required for ${postType} posts.`);
+      }
 
-      if (postType === "ARTICLE") {
-        // Save article posts
-        post = await Post.create({
-          userId,
-          title,
-          content,
-          professionalTags: tags,
-          postType,
-          status,
-        });
-      } else if (postType === "VIDEO" || postType === "AUDIO") {
-        let finalUrl;
-        let metadata = postData.metadata;
+      // --- Prepare post object ---
+      const postObj = {
+        userId,
+        title,
+        content: postType === "ARTICLE" ? content : null,
+        professionalTags: tags,
+        postType,
+        mediaUrl: finalUrl || null,
+        metadata: finalMetadata,
+        status: "PROCESSING",
+      };
 
-        // Case 1: A file was uploaded via Multer
-        if (file && file.secure_url) {
-          finalUrl = file.secure_url;
-          metadata = {
-            public_id: file.public_id,
-            url: file.secure_url,
-            file_name: file.original_filename,
-            format: file.format,
-          };
-        }
-        // Case 2: A media URL was provided in the request body
-        else if (mediaUrl) {
-          finalUrl = mediaUrl;
-        }
+      const post = await Post.create(postObj);
+      logger.info(`Post created: ${post.id}`);
 
-        // Check if a URL was successfully determined
-        if (!finalUrl) {
-          throw new Error(
-            "File data or mediaUrl is required for this post type."
+      if (postType === "ARTICLE" && post.content) {
+        const channel = getChannel();
+        if (channel) {
+          channel.sendToQueue(
+            "embedding_queue",
+            Buffer.from(
+              JSON.stringify({
+                postId: post.id,
+                postType: post.postType,
+                content: post.content,
+                title: post.title,
+                professionalTags: post.professionalTags,
+                userId: post.userId,
+              })
+            )
+          );
+          logger.info(
+            `Article post ${post.id} queued for embedding processing`
           );
         }
-
-        // Save video/audio posts
-        post = await Post.create({
-          userId,
-          title,
-          professionalTags: tags,
-          postType,
-          metadata,
-          mediaUrl: finalUrl, // Use the determined finalUrl
-          status,
-        });
       }
 
-      logger.info(
-        `New post created by user ${userId} with type ${postType}: ${post.id}`
-      );
 
-      // Send to embedding worker
-      const channel = getChannel();
-      channel.sendToQueue(
-        "embedding_queue",
-        Buffer.from(
-          JSON.stringify({
+      // --- Queue media posts for embedding ---
+      if ((postType === "VIDEO" || postType === "AUDIO") && finalUrl) {
+        const channel = getChannel();
+        if (!channel) {
+          logger.warn(
+            `RabbitMQ channel not ready. Post ${post.id} will not be queued immediately.`
+          );
+        } else {
+          const messageData = {
             postId: post.id,
             postType: post.postType,
             metadata: post.metadata,
@@ -92,14 +122,19 @@ class PostService {
             userId: post.userId,
             professionalTags: post.professionalTags,
             title: post.title,
-          })
-        )
-      );
+          };
+          channel.sendToQueue(
+            "embedding_queue",
+            Buffer.from(JSON.stringify(messageData))
+          );
+          logger.info(`Post ${post.id} queued for embedding processing`);
+        }
+      }
 
       return post;
     } catch (error) {
       logger.error("Failed to create post:", error);
-      throw new Error("Failed to create post");
+      throw error;
     }
   }
 

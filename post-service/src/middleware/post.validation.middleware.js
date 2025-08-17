@@ -15,9 +15,12 @@ class PostValidationMiddleware {
       next();
     } catch (error) {
       logger.error("Validation failed:", error.message);
-      res
-        .status(400)
-        .json({ message: "Validation failed", errors: error.errors });
+      logger.error("Validation errors:", error.errors);
+      res.status(400).json({
+        message: "Validation failed",
+        errors: error.errors,
+        details: error.errors.map((err) => err.message),
+      });
     }
   };
 
@@ -44,8 +47,8 @@ class PostValidationMiddleware {
         mediaUrl: zod.string().url("Invalid media URL.").optional(),
         metadata: zod
           .object({
-            public_id: zod.string(),
-            url: zod.string().url("Invalid metadata URL."),
+            public_id: zod.string().optional(),
+            url: zod.string().url("Invalid metadata URL.").optional(),
             file_name: zod.string().optional(),
             file_size: zod.number().optional(),
             format: zod.string().optional(),
@@ -54,20 +57,38 @@ class PostValidationMiddleware {
       }),
       file: zod
         .object({
-          path: zod.string(),
-          originalname: zod.string(),
-          mimetype: zod.string(),
-          size: zod.number(),
+          path: zod.string().optional(),
+          secure_url: zod.string().optional(), // For Cloudinary uploads
+          public_id: zod.string().optional(), // For Cloudinary uploads
+          originalname: zod.string().optional(),
+          original_filename: zod.string().optional(), // Cloudinary field
+          mimetype: zod.string().optional(),
+          size: zod.number().optional(),
+          bytes: zod.number().optional(), // Cloudinary field
+          format: zod.string().optional(), // Cloudinary field
         })
         .optional(),
     })
     .superRefine(({ body, file }, ctx) => {
-      // Custom validation logic
-      if (!file && !body.mediaUrl && !body.metadata?.url) {
+      // More flexible validation logic
+      const hasUploadedFile = file && (file.secure_url || file.path);
+      const hasMediaUrl = body.mediaUrl;
+      const hasMetadataUrl = body.metadata && body.metadata.url;
+
+      logger.info("Media validation check:", {
+        hasUploadedFile: hasUploadedFile ? file.secure_url || file.path : false,
+        hasMediaUrl,
+        hasMetadataUrl,
+        fileKeys: file ? Object.keys(file) : [],
+        bodyKeys: Object.keys(body),
+      });
+
+      if (!hasUploadedFile && !hasMediaUrl && !hasMetadataUrl) {
         ctx.addIssue({
           code: zod.ZodIssueCode.custom,
-          message: "Either a file or a media URL/metadata must be provided.",
-          path: ["body", "file"],
+          message:
+            "Media posts require either an uploaded file, a media URL, or metadata with a URL.",
+          path: ["body"],
         });
       }
     });
