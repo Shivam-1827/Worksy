@@ -1,0 +1,173 @@
+version: "3.8"
+
+services:
+  # Load Balancer / Reverse Proxy
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx_load_balancer
+    ports:
+      - "80:80" # Expose port 80 to the host for all incoming HTTP traffic
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-api
+      - post-api
+      - search-api
+
+  # RabbitMQ Service
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Redis Service
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # Auth Service API
+  auth-api:
+    build:
+      context: ./auth-service
+      dockerfile: src/Dockerfile
+    container_name: auth-api
+    # No host port mapping, Nginx will handle routing
+    volumes:
+      - ./auth-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/index.js
+
+  # Auth Service Worker
+  auth-worker:
+    build:
+      context: ./auth-service
+      dockerfile: src/Dockerfile
+    container_name: auth-worker
+    volumes:
+      - ./auth-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/workers/email.worker.js
+
+  # Post Service API
+  post-api:
+    build:
+      context: ./post-service
+      dockerfile: src/Dockerfile
+    container_name: post-api
+    # No host port mapping, Nginx will handle routing
+    volumes:
+      - ./post-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/index.js
+
+  # Post Service Worker
+  post-worker:
+    build:
+      context: ./post-service
+      dockerfile: src/Dockerfile
+    container_name: post-worker
+    volumes:
+      - ./post-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_URL_DOCKER=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/workers/embedding.worker.js
+
+  # Search Service API
+  search-api:
+    build:
+      context: ./search-service
+      dockerfile: src/Dockerfile
+    container_name: search-api
+    # No host port mapping, Nginx will handle routing
+    volumes:
+      - ./search-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/index.js
+
+  # Search Service Worker
+  search-worker:
+    build:
+      context: ./search-service
+      dockerfile: src/Dockerfile
+    container_name: search-worker
+    volumes:
+      - ./search-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - rabbitmq
+      - redis
+    command: node src/workers/search.worker.js
+
+volumes:
+  rabbitmq_data:
+  redis_data:
