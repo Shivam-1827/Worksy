@@ -1,18 +1,19 @@
 version: "3.8"
 
 services:
-  # Load Balancer / Reverse Proxy
-  nginx:
-    image: nginx:stable-alpine
-    container_name: nginx_load_balancer
+  # Traefik - Dynamic Reverse Proxy & Load Balancer
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
     ports:
-      - "80:80" # Expose port 80 to the host for all incoming HTTP traffic
+      - "80:80" # expose HTTP
+      - "8080:8080" # Traefik dashboard (optional)
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - auth-api
-      - post-api
-      - search-api
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   # RabbitMQ Service
   rabbitmq:
@@ -35,7 +36,6 @@ services:
       context: ./auth-service
       dockerfile: src/Dockerfile
     container_name: auth-api
-    # No host port mapping, Nginx will handle routing
     volumes:
       - ./auth-service:/usr/src/app
       - /usr/src/app/node_modules
@@ -53,8 +53,12 @@ services:
       - rabbitmq
       - redis
     command: node src/index.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/auth`)"
+      - "traefik.http.services.auth.loadbalancer.server.port=3000"
 
-  # Auth Service Worker
+  # Auth Service Worker (not exposed via Traefik)
   auth-worker:
     build:
       context: ./auth-service
@@ -81,7 +85,6 @@ services:
       context: ./post-service
       dockerfile: src/Dockerfile
     container_name: post-api
-    # No host port mapping, Nginx will handle routing
     volumes:
       - ./post-service:/usr/src/app
       - /usr/src/app/node_modules
@@ -99,8 +102,12 @@ services:
       - rabbitmq
       - redis
     command: node src/index.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.post.rule=PathPrefix(`/post`)"
+      - "traefik.http.services.post.loadbalancer.server.port=3001"
 
-  # Post Service Worker
+  # Post Service Worker (not exposed via Traefik)
   post-worker:
     build:
       context: ./post-service
@@ -112,7 +119,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=${DATABASE_URL}
-      - RABBITMQ_URL_DOCKER=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
       - PINECONE_API_KEY=${PINECONE_API_KEY}
       - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
@@ -132,7 +139,6 @@ services:
       context: ./search-service
       dockerfile: src/Dockerfile
     container_name: search-api
-    # No host port mapping, Nginx will handle routing
     volumes:
       - ./search-service:/usr/src/app
       - /usr/src/app/node_modules
@@ -146,8 +152,12 @@ services:
       - rabbitmq
       - redis
     command: node src/index.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.search.rule=PathPrefix(`/search`)"
+      - "traefik.http.services.search.loadbalancer.server.port=3002"
 
-  # Search Service Worker
+  # Search Service Worker (not exposed via Traefik)
   search-worker:
     build:
       context: ./search-service
