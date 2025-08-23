@@ -4,7 +4,6 @@ const path = require("path");
 const DailyRotateFile = require("winston-daily-rotate-file");
 const util = require("util");
 
-// Custom log levels
 const levels = {
   error: 0,
   warn: 1,
@@ -13,7 +12,6 @@ const levels = {
   debug: 4,
 };
 
-// Log colors
 const colors = {
   error: "red",
   warn: "yellow",
@@ -23,24 +21,20 @@ const colors = {
 };
 winston.addColors(colors);
 
-// Pretty print everything (objects, errors, etc.)
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let msg = message;
 
-    // Handle objects in message
     if (typeof msg === "object") {
       msg = util.inspect(msg, { depth: null, colors: true });
     }
 
-    // Handle error objects (message + stack)
     if (msg instanceof Error) {
       msg = `${msg.message}\n${msg.stack}`;
     }
 
-    // Handle extra metadata
     let extra = "";
     if (Object.keys(meta).length > 0) {
       extra = util.inspect(meta, { depth: null, colors: true });
@@ -50,9 +44,10 @@ const logFormat = winston.format.combine(
   })
 );
 
-// Daily rotate transport
+// Daily rotate transport for combined logs
 const dailyRotateTransport = new DailyRotateFile({
-  filename: path.join(__dirname, "../../logs/%DATE%-app.log"),
+  dirname: path.join(__dirname, "../../logs/archived"), // archived folder
+  filename: "%DATE%-app.log",
   datePattern: "YYYY-MM-DD",
   zippedArchive: true,
   maxSize: "20m",
@@ -68,12 +63,12 @@ const logger = winston.createLogger({
   levels,
   format: logFormat,
   transports: [
-    // Console output
     new winston.transports.Console({ format: logFormat }),
 
-    // Error logs only
+    // Error logs only (archived)
     new DailyRotateFile({
-      filename: path.join(__dirname, "../../logs/%DATE%-error.log"),
+      dirname: path.join(__dirname, "../../logs/archived"),
+      filename: "%DATE%-error.log",
       datePattern: "YYYY-MM-DD",
       zippedArchive: true,
       maxSize: "20m",
@@ -85,12 +80,10 @@ const logger = winston.createLogger({
       ),
     }),
 
-    // Combined daily logs
     dailyRotateTransport,
   ],
 });
 
-// Stream for morgan HTTP logging
 logger.stream = {
   write: (message) => {
     logger.http(message.trim());
