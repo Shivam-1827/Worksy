@@ -1,315 +1,859 @@
-# Professional Platform - Microservices Architecture
+# Professional Platform - Microservices RAG Application
 
-A comprehensive professional networking platform built with Node.js microservices, featuring AI-powered content processing and intelligent search capabilities.
+A sophisticated microservices-based platform for professional content sharing and intelligent search, featuring advanced RAG (Retrieval-Augmented Generation) capabilities with real-time processing and WebSocket communications.
+
+## 📁 Directory Structure
+
+```
+professional-platform/
+├── README.md
+├── docker-compose.yml
+├── .env
+├── .gitignore
+│
+├── auth-service/
+│   ├── src/
+│   │   ├── Dockerfile
+│   │   ├── index.js                    # Main application entry point
+│   │   ├── config/
+│   │   │   ├── database.js             # PostgreSQL connection setup
+│   │   │   ├── rabbitmq.js             # RabbitMQ connection & retry logic
+│   │   │   └── redis.js                # Redis client configuration
+│   │   ├── controllers/
+│   │   │   └── auth.controllers.js     # Authentication endpoints logic
+│   │   ├── middleware/
+│   │   │   ├── auth.middleware.js      # JWT token validation
+│   │   │   └── validation.middleware.js # Zod schema validation
+│   │   ├── models/
+│   │   │   └── user.model.js           # User Sequelize model
+│   │   ├── routes/
+│   │   │   └── auth.routes.js          # Authentication API routes
+│   │   ├── services/
+│   │   │   └── auth.service.js         # Business logic & database operations
+│   │   ├── utils/
+│   │   │   └── logger.js               # Winston logging configuration
+│   │   ├── websocket/
+│   │   │   └── websocket.js            # WebSocket server for real-time updates
+│   │   └── workers/
+│   │       └── email.worker.js         # Email sending background worker
+│   ├── logs/
+│   │   └── archived/                   # Rotated log files
+│   ├── package.json
+│   └── package-lock.json
+│
+├── post-service/
+│   ├── src/
+│   │   ├── Dockerfile
+│   │   ├── index.js                    # Main application entry point
+│   │   ├── config/
+│   │   │   ├── database.js             # PostgreSQL connection
+│   │   │   ├── rabbitmq.js             # RabbitMQ setup
+│   │   │   └── redis.js                # Redis configuration
+│   │   ├── controllers/
+│   │   │   └── post.controllers.js     # Post creation & retrieval logic
+│   │   ├── middleware/
+│   │   │   ├── auth.middleware.js      # JWT authentication
+│   │   │   ├── post.validation.middleware.js # Post validation schemas
+│   │   │   └── upload.middleware.js    # Cloudinary file upload
+│   │   ├── models/
+│   │   │   └── post.model.js           # Post Sequelize model
+│   │   ├── routes/
+│   │   │   └── post.routes.js          # Post API routes
+│   │   ├── services/
+│   │   │   └── post.service.js         # Post business logic
+│   │   ├── utils/
+│   │   │   ├── logger.js               # Winston logging
+│   │   │   └── multer.js               # Local file upload (backup)
+│   │   ├── websocket/
+│   │   │   └── websocket.js            # Real-time post status updates
+│   │   └── workers/
+│   │       └── embedding.worker.js     # RAG processing worker
+│   ├── logs/
+│   │   └── archived/
+│   ├── package.json
+│   └── package-lock.json
+│
+├── search-service/
+│   ├── src/
+│   │   ├── Dockerfile
+│   │   ├── index.js                    # Main application entry point
+│   │   ├── config/
+│   │   │   ├── rabbitmq.js             # RabbitMQ connection
+│   │   │   └── redis.js                # Redis configuration
+│   │   ├── controllers/
+│   │   │   └── search.controller.js    # Search request handling
+│   │   ├── routes/
+│   │   │   └── search.routes.js        # Search API routes with validation
+│   │   ├── service/
+│   │   │   ├── gemini.service.js       # Google AI integration
+│   │   │   ├── llm.service.js          # LLM abstraction layer
+│   │   │   └── pinecone.service.js     # Vector database operations
+│   │   ├── utils/
+│   │   │   └── logger.js               # Winston logging
+│   │   ├── websocket/
+│   │   │   └── websocket.js            # Real-time search results
+│   │   └── workers/
+│   │       └── search.worker.js        # RAG search processing
+│   ├── logs/
+│   │   └── archived/
+│   ├── package.json
+│   └── package-lock.json
+│
+└── infrastructure/
+    ├── traefik/                        # Reverse proxy configuration
+    ├── rabbitmq/                       # Message queue data
+    └── redis/                          # Cache data
+```
 
 ## 🏗️ Architecture Overview
 
-This platform consists of three main microservices:
+This application implements a distributed microservices architecture with three main services:
 
-### 1. **Auth Service** (Port 3000)
-- User authentication and authorization
-- JWT token management with Redis-based session control
-- Password reset with OTP via email
-- User profile management
-- WebSocket support for real-time OTP status updates
+### Core Services
+- **Auth Service (Port 3000)** - User authentication, authorization, and profile management
+- **Post Service (Port 3001)** - Content creation, media handling, and post management  
+- **Search Service (Port 3002)** - Intelligent RAG-powered search with vector embeddings
 
-### 2. **Post Service** (Port 3001)
-- Content creation (Articles, Videos, Audio)
-- Cloudinary integration for media uploads
-- Background processing for content embedding
-- WebSocket support for real-time post processing updates
-- Professional tagging system
+### Infrastructure Components
+- **Traefik** - Dynamic reverse proxy and load balancer
+- **RabbitMQ** - Message queue for asynchronous processing
+- **Redis** - Caching, session management, and pub/sub messaging
+- **PostgreSQL** - Primary database (via Neon)
+- **Pinecone** - Vector database for embeddings storage
+- **Cloudinary** - Media file storage and processing
 
-### 3. **Search Service** (Port 3002)
-- AI-powered semantic search using vector embeddings
-- Gemini AI integration for query refinement and response generation
-- Pinecone vector database for similarity search
-- WebSocket support for real-time search results
+## 🧠 RAG (Retrieval-Augmented Generation) Implementation
 
-## 🛠️ Tech Stack
+This platform implements a comprehensive RAG system with the following workflow:
 
-### Core Technologies
-- **Backend**: Node.js, Express.js
-- **Database**: PostgreSQL (Neon), Redis
-- **Message Queue**: RabbitMQ
-- **API Gateway**: Traefik (Docker) / Nginx
-- **Containerization**: Docker & Docker Compose
+### 1. Content Processing Pipeline
+```
+User Content → Post Service → RabbitMQ Queue → Embedding Worker
+     ↓              ↓              ↓              ↓
+ Article Text   Video/Audio    Background      AI Processing
+     ↓          Transcription   Processing         ↓
+ Text Chunks   ←  Gemini AI  ←      ↓         → Vector DB
+     ↓              ↓              ↓              ↓
+ Embeddings  → Google AI → Text Splitting → Pinecone Storage
+```
 
-### AI & ML
-- **LLM**: Google Gemini (Flash & Pro models)
-- **Embeddings**: Google Text Embedding 004
-- **Vector Database**: Pinecone
-- **Text Processing**: LangChain
+### 2. Search & Retrieval Pipeline
+```
+User Query → Search Service → Query Enhancement → Vector Search
+     ↓             ↓              ↓                 ↓
+WebSocket     RabbitMQ      Gemini Refinement   Pinecone Query
+     ↓             ↓              ↓                 ↓
+Real-time    Search Worker  → Context Assembly → LLM Response
+Results    ←      ↓              ↓                 ↓
+     ↑         Redis        Relevant Chunks → Final Answer
+     └────── Pub/Sub ←────────────┘
+```
 
-### External Services
-- **File Storage**: Cloudinary
-- **Email**: Nodemailer (Gmail)
-- **Real-time**: WebSocket
+### Key RAG Features
+- **Multi-Modal Content Support**: Processes articles, videos, and audio files
+- **Automatic Transcription**: Uses Google Gemini Flash for media-to-text conversion
+- **Intelligent Chunking**: LangChain RecursiveCharacterTextSplitter for optimal text segments
+- **Vector Embeddings**: Google's text-embedding-004 model for semantic understanding
+- **Semantic Search**: Pinecone vector database for similarity matching
+- **Query Enhancement**: AI-powered query refinement for better results
+- **Context-Aware Responses**: LLM generates answers using retrieved relevant content
+- **Real-Time Processing**: WebSocket updates for search progress and results
 
-### Key Libraries
-- **Authentication**: JWT, bcryptjs
-- **Validation**: Zod
-- **ORM**: Sequelize
-- **Logging**: Winston
-- **Rate Limiting**: express-rate-limit
+## 🚀 Service Details
 
-## 🚀 Getting Started
+### Auth Service (`auth-service/`)
+**Responsibilities:**
+- User registration and authentication
+- JWT token management (access/refresh)
+- Password reset via email OTP
+- Profile management
+- Session invalidation
+
+**Key Components:**
+- `auth.service.js` - Core authentication logic
+- `email.worker.js` - Background email processing
+- `websocket.js` - Real-time OTP status updates
+- `auth.middleware.js` - JWT validation and session checking
+
+### Post Service (`post-service/`)
+**Responsibilities:**
+- Content creation (articles, videos, audio)
+- Media file upload to Cloudinary
+- Content queuing for RAG processing
+- Post status tracking
+
+**Key Components:**
+- `post.service.js` - Content creation and management
+- `upload.middleware.js` - Cloudinary integration
+- `embedding.worker.js` - RAG processing worker (transcription + embeddings)
+- `post.validation.middleware.js` - Multi-format content validation
+
+### Search Service (`search-service/`)
+**Responsibilities:**
+- Natural language search processing
+- Vector similarity search
+- LLM response generation
+- Real-time result delivery
+
+**Key Components:**
+- `search.worker.js` - Main RAG search processing
+- `gemini.service.js` - Google AI integration (embeddings + LLM)
+- `pinecone.service.js` - Vector database operations
+- `llm.service.js` - Response generation abstraction
+
+## 🛠️ Technology Stack
+
+### Backend Framework
+- **Node.js** with Express.js
+- **Sequelize** ORM with PostgreSQL
+- **Docker** containerization with Docker Compose
+- **Traefik** reverse proxy and load balancing
+
+### AI/ML Integration
+- **Google Gemini Flash** - Media transcription and query refinement
+- **Google text-embedding-004** - Vector embeddings generation
+- **LangChain** - Text processing and intelligent chunking
+- **Pinecone** - Vector database for semantic search
+
+### Message Queue & Real-Time
+- **RabbitMQ** - Asynchronous job processing with retry logic
+- **Redis** - Session storage, caching, and pub/sub messaging
+- **WebSocket** - Real-time updates for processing status and search results
+
+### Authentication & Security
+- **JWT** - Access and refresh token system
+- **bcryptjs** - Password hashing
+- **Zod** - Input validation and schema enforcement
+- **Express Rate Limit** - API rate limiting
+- **CORS** - Cross-origin request security
+
+### Media & Storage
+- **Cloudinary** - Media storage, optimization, and CDN
+- **Multer** - File upload handling
+- **Nodemailer** - Email service integration
+
+### Logging & Monitoring
+- **Winston** - Structured logging with daily rotation
+- **Morgan** - HTTP request logging
+- **Daily Rotate File** - Log file management
+
+## 📦 Installation & Setup
 
 ### Prerequisites
+```bash
+# Required software
 - Docker and Docker Compose
 - Node.js 18+ (for local development)
-- PostgreSQL database (Neon recommended)
-- Redis instance
-- RabbitMQ instance
+- Git
 
-### Environment Variables
+# Required accounts/services
+- Neon PostgreSQL database
+- Google AI API key
+- Pinecone vector database
+- Cloudinary account
+- Gmail App Password (for email service)
+```
 
+### Environment Configuration
 Create a `.env` file in the root directory:
 
 ```env
-# Database
-DATABASE_URL=postgresql://username:password@host/database
+# Database Configuration
+DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 
-# JWT Secrets
-ACCESS_TOKEN_SECRET=your-access-token-secret
-REFRESH_TOKEN_SECRET=your-refresh-token-secret
+# Authentication Secrets
+ACCESS_TOKEN_SECRET=your_super_secret_access_token_key_min_32_chars
+REFRESH_TOKEN_SECRET=your_super_secret_refresh_token_key_min_32_chars
 ACCESS_TOKEN_EXPIRY=15m
 REFRESH_TOKEN_EXPIRY=7d
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Email Service (Gmail)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
 
-# RabbitMQ
-RABBITMQ_URL=amqp://localhost:5672
-RABBITMQ_URL_DOCKER=amqp://guest:guest@rabbitmq:5672
-
-# Email Configuration
-EMAIL_USER=your-gmail@gmail.com
-EMAIL_PASS=your-app-password
-
-# Cloudinary
+# Cloudinary Configuration
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 
-# Google AI
-GOOGLE_API_KEY=your-gemini-api-key
+# Google AI Configuration
+GOOGLE_API_KEY=your-google-ai-api-key
 
-# Pinecone
+# Pinecone Vector Database
 PINECONE_API_KEY=your-pinecone-api-key
 PINECONE_INDEX=your-index-name
 PINECONE_ENVIRONMENT=your-environment
 
-# Logging
-LOG_LEVEL=info
+# Service URLs (Docker Internal)
+REDIS_URL=redis://redis:6379
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+# Optional: Local Development URLs
+REDIS_URL_LOCAL=redis://localhost:6379
+RABBITMQ_URL_LOCAL=amqp://localhost:5672
 ```
 
 ### Quick Start with Docker
 
-1. **Clone and setup**:
+1. **Clone Repository**
 ```bash
 git clone <repository-url>
 cd professional-platform
 ```
 
-2. **Start all services**:
+2. **Environment Setup**
 ```bash
+# Copy and configure environment variables
+cp .env.example .env
+nano .env  # Edit with your configuration
+```
+
+3. **Start All Services**
+```bash
+# Build and start all services
 docker-compose up -d
+
+# View startup logs
+docker-compose logs -f
 ```
 
-3. **Access the services**:
-- API Gateway: http://localhost (Traefik dashboard: http://localhost:8080)
-- RabbitMQ Management: http://localhost:15672 (guest/guest)
-- Redis: localhost:6379
-
-### Local Development
-
-1. **Install dependencies for each service**:
+4. **Verify Deployment**
 ```bash
-# Auth Service
+# Check service health
+docker-compose ps
+
+# Test API endpoints
+curl http://localhost/auth/api/v1/auth/health
+curl http://localhost/post/api/v1/posts/health  
+curl http://localhost/search/api/v1/health
+```
+
+### Local Development Setup
+
+1. **Install Dependencies**
+```bash
+# Install for each service
 cd auth-service && npm install
-
-# Post Service  
-cd post-service && npm install
-
-# Search Service
-cd search-service && npm install
+cd ../post-service && npm install  
+cd ../search-service && npm install
 ```
 
-2. **Start external dependencies**:
+2. **Start Infrastructure**
 ```bash
-# Start Redis, RabbitMQ, PostgreSQL locally or use Docker
-docker run -d -p 6379:6379 redis:6-alpine
-docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management-alpine
+# Start only infrastructure services
+docker-compose up -d redis rabbitmq
 ```
 
-3. **Run services individually**:
+3. **Run Services Locally**
 ```bash
 # Terminal 1: Auth Service
 cd auth-service && npm run dev
 
-# Terminal 2: Post Service
+# Terminal 2: Post Service  
 cd post-service && npm run dev
 
-# Terminal 3: Search Service  
+# Terminal 3: Search Service
 cd search-service && npm run dev
-
-# Terminal 4: Workers (optional, for background processing)
-cd auth-service && node src/workers/email.worker.js
-cd post-service && node src/workers/embedding.worker.js
-cd search-service && node src/workers/search.worker.js
 ```
 
-## 📡 API Endpoints
+## 🔌 API Documentation
 
-### Auth Service (`/api/v1/auth`)
-- `POST /register` - User registration
-- `POST /login` - User login
-- `POST /token/refresh` - Refresh access token
-- `POST /forgot-password` - Request password reset
-- `POST /reset-password-otp` - Reset password with OTP
-- `GET /profile` - Get user profile
-- `PUT /profile` - Update user profile
-- `PUT /update-password` - Change password
-- `PUT /update-email` - Update email
-- `POST /logout` - Logout user
+### Authentication Endpoints (`/auth/api/v1/auth/`)
 
-### Post Service (`/api/v1/posts`)
-- `POST /article` - Create article post
-- `POST /media` - Create video/audio post (with file upload)
-- `GET /:postId` - Get specific post
+#### User Registration
+```http
+POST /register
+Content-Type: application/json
 
-### Search Service (`/api/v1`)
-- `POST /search` - Semantic search (returns searchId for WebSocket)
+{
+  "email": "developer@example.com",
+  "password": "SecurePass123!",
+  "professionalTitle": "Senior Full Stack Developer",
+  "location": "San Francisco, CA"
+}
 
-## 🔄 Real-time Features
+Response: 200 OK
+{
+  "user": {
+    "id": "uuid",
+    "email": "developer@example.com",
+    "professionalTitle": "Senior Full Stack Developer",
+    "location": "San Francisco, CA"
+  }
+}
+```
 
-### WebSocket Connections
+#### User Login
+```http
+POST /login
+Content-Type: application/json
 
-1. **Auth Service** - OTP Status Updates:
+{
+  "email": "developer@example.com", 
+  "password": "SecurePass123!"
+}
+
+Response: 200 OK
+{
+  "user": { "id": "uuid", "email": "developer@example.com" },
+  "accessToken": "jwt-access-token",
+  "refreshToken": "jwt-refresh-token"
+}
+```
+
+#### Password Reset Flow
+```http
+# Step 1: Request OTP
+POST /forgot-password
+{
+  "email": "developer@example.com"
+}
+
+# Step 2: Reset with OTP (received via email)
+POST /reset-password-otp
+{
+  "email": "developer@example.com",
+  "otp": "123456", 
+  "newPassword": "NewSecurePass123!"
+}
+```
+
+### Content Management Endpoints (`/post/api/v1/posts/`)
+
+#### Create Article
+```http
+POST /article
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "title": "Advanced React Performance Optimization",
+  "content": "In this comprehensive guide, we'll explore...",
+  "postType": "ARTICLE",
+  "professionalTags": ["react", "performance", "javascript", "frontend"]
+}
+
+Response: 201 Created
+{
+  "success": true,
+  "message": "Post created successfully", 
+  "data": {
+    "id": "post-uuid",
+    "title": "Advanced React Performance Optimization",
+    "status": "PROCESSING"
+  }
+}
+```
+
+#### Upload Media Content
+```http
+POST /media
+Authorization: Bearer <access-token>
+Content-Type: multipart/form-data
+
+file: <video-or-audio-file>
+title: "React Hooks Tutorial - Complete Guide"
+postType: "VIDEO"
+professionalTags: ["react", "hooks", "tutorial", "javascript"]
+
+Response: 201 Created
+{
+  "success": true,
+  "message": "Post created successfully",
+  "data": {
+    "id": "post-uuid", 
+    "mediaUrl": "https://res.cloudinary.com/...",
+    "status": "PROCESSING"
+  }
+}
+```
+
+### Intelligent Search Endpoints (`/search/api/v1/`)
+
+#### Perform RAG Search
+```http
+POST /search
+Content-Type: application/json
+
+{
+  "query": "How can I optimize React component performance and avoid unnecessary re-renders?"
+}
+
+Response: 202 Accepted
+{
+  "message": "Search request accepted. Processing...",
+  "searchId": "search-uuid",
+  "info": "Connect to WebSocket using this searchId to get real-time updates."
+}
+```
+
+#### WebSocket Real-Time Results
 ```javascript
-const ws = new WebSocket('ws://localhost:3000');
-// Listen for OTP delivery status
+// Connect to search results WebSocket
+const ws = new WebSocket(`ws://localhost/search?searchId=${searchId}`);
+
+ws.onmessage = (event) => {
+  const result = JSON.parse(event.data);
+  /*
+  {
+    "searchId": "search-uuid",
+    "status": "completed",
+    "statusMessage": "Search completed successfully",
+    "data": {
+      "text": "To optimize React component performance and avoid unnecessary re-renders, you can use several techniques:\n\n1. **React.memo()**: Wrap functional components to prevent re-renders when props haven't changed...",
+      "videoLinks": [
+        "https://res.cloudinary.com/your-cloud/video/upload/react-performance-tutorial.mp4"
+      ]
+    }
+  }
+  */
+};
 ```
 
-2. **Post Service** - Processing Updates:
+## 🔄 RAG Processing Workflow
+
+### Content Processing (Post Service → Embedding Worker)
+```mermaid
+graph TD
+    A[User uploads content] → B[Post Service validates]
+    B → C[Store in PostgreSQL]
+    C → D[Queue in RabbitMQ]
+    D → E[Embedding Worker processes]
+    E → F{Content Type?}
+    F →|Article| G[Extract text content]
+    F →|Video/Audio| H[Transcribe with Gemini AI]
+    G → I[Text chunking with LangChain]
+    H → I
+    I → J[Generate embeddings with Google AI]
+    J → K[Store vectors in Pinecone]
+    K → L[Update post status to COMPLETED]
+    L → M[Notify user via WebSocket]
+```
+
+### Search Processing (Search Service → Search Worker)
+```mermaid
+graph TD
+    A[User submits query] → B[Search Service queues request]
+    B → C[Search Worker processes]
+    C → D[Refine query with Gemini AI]
+    D → E[Generate query embedding]
+    E → F[Vector search in Pinecone]
+    F → G{Results found?}
+    G →|Yes| H[Assemble context from matches]
+    G →|No| I[Use general knowledge context]
+    H → J[Generate response with LLM]
+    I → J
+    J → K[Extract video links]
+    K → L[Send results via WebSocket]
+```
+
+## 🔐 Security Implementation
+
+### Authentication Security
+- **JWT Tokens**: Secure access/refresh token system
+- **Password Hashing**: bcryptjs with salt rounds
+- **Session Management**: Redis-based token invalidation
+- **Rate Limiting**: Configurable per-endpoint limits
+
+### API Security
+- **Input Validation**: Zod schema validation for all endpoints
+- **CORS Configuration**: Controlled cross-origin access
+- **File Upload Security**: Type and size validation
+- **SQL Injection Protection**: Sequelize ORM parameterized queries
+
+### Infrastructure Security
+- **SSL/TLS**: Encrypted database connections
+- **Docker Security**: Non-root containers
+- **Environment Variables**: Sensitive data isolation
+- **Network Isolation**: Docker internal networks
+
+## 📊 Monitoring & Observability
+
+### Logging Strategy
+```
+/logs/archived/
+├── YYYY-MM-DD-app.log          # Combined application logs
+├── YYYY-MM-DD-error.log        # Error-only logs
+└── (older logs compressed)      # Automatic compression and rotation
+```
+
+### Log Levels
+- **ERROR**: Critical issues requiring immediate attention
+- **WARN**: Potential issues or degraded performance
+- **INFO**: General application flow and status updates
+- **HTTP**: Request/response logging
+- **DEBUG**: Detailed troubleshooting information
+
+### Service Health Monitoring
+```bash
+# Check all services
+docker-compose ps
+
+# Monitor specific service logs
+docker-compose logs -f auth-api
+docker-compose logs -f post-worker
+docker-compose logs -f search-worker
+
+# Check infrastructure
+docker-compose logs -f rabbitmq
+docker-compose logs -f redis
+```
+
+### Performance Monitoring
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
+- **Queue Metrics**: Message rates, queue lengths, processing times
+- **Redis Monitoring**: Connection counts, memory usage
+- **API Response Times**: Logged with Winston HTTP transport
+
+## 🚦 Common Usage Patterns
+
+### Complete User Journey Example
+
+1. **User Registration & Authentication**
+```bash
+# Register new user
+curl -X POST http://localhost/auth/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "expert@example.com",
+    "password": "SecurePass123!",
+    "professionalTitle": "React Specialist",
+    "location": "Remote"
+  }'
+
+# Login to get tokens
+curl -X POST http://localhost/auth/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "expert@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+2. **Content Creation**
+```bash
+# Create an article
+curl -X POST http://localhost/post/api/v1/posts/article \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "React Performance Best Practices",
+    "content": "Performance optimization is crucial...",
+    "postType": "ARTICLE",
+    "professionalTags": ["react", "performance", "optimization"]
+  }'
+
+# Upload video content
+curl -X POST http://localhost/post/api/v1/posts/media \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "file=@tutorial-video.mp4" \
+  -F "title=React Hooks Deep Dive" \
+  -F "postType=VIDEO" \
+  -F "professionalTags=react,hooks,tutorial"
+```
+
+3. **Intelligent Search**
+```bash
+# Perform search
+curl -X POST http://localhost/search/api/v1/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How to prevent unnecessary re-renders in React?"
+  }'
+```
+
+## 🐛 Troubleshooting Guide
+
+### Common Issues & Solutions
+
+#### 1. Services Not Starting
+```bash
+# Check Docker status
+docker-compose ps
+
+# View service logs
+docker-compose logs auth-api
+docker-compose logs post-worker
+
+# Restart specific service
+docker-compose restart auth-api
+```
+
+#### 2. Database Connection Issues
+```bash
+# Verify DATABASE_URL format
+echo $DATABASE_URL
+
+# Test database connection
+docker-compose exec auth-api npm run db:test
+
+# Check SSL requirements for Neon
+# Ensure ?sslmode=require is in connection string
+```
+
+#### 3. RabbitMQ Connection Problems
+```bash
+# Check RabbitMQ status
+docker-compose logs rabbitmq
+
+# Access management interface
+open http://localhost:15672
+
+# Restart message queue
+docker-compose restart rabbitmq
+```
+
+#### 4. AI API Issues
+```bash
+# Check Google AI API key
+curl -H "Authorization: Bearer $GOOGLE_API_KEY" \
+  https://generativelanguage.googleapis.com/v1/models
+
+# Verify Pinecone connectivity
+curl -H "Api-Key: $PINECONE_API_KEY" \
+  https://controller.$PINECONE_ENVIRONMENT.pinecone.io/databases
+
+# Monitor API quota usage in respective dashboards
+```
+
+#### 5. File Upload Problems
+```bash
+# Check Cloudinary configuration
+docker-compose exec post-api node -e "
+  console.log('Cloudinary Config:', {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET'
+  })
+"
+
+# Test file upload endpoint
+curl -X POST http://localhost/post/api/v1/posts/media \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@test.mp4" \
+  -F "title=Test Upload" \
+  -F "postType=VIDEO"
+```
+
+### Performance Optimization
+
+#### 1. Database Optimization
+```sql
+-- Add indexes for frequently queried fields
+CREATE INDEX idx_posts_user_id ON posts(userId);
+CREATE INDEX idx_posts_type_status ON posts(postType, status);
+CREATE INDEX idx_posts_created_at ON posts(createdAt);
+```
+
+#### 2. Redis Optimization
 ```javascript
-const ws = new WebSocket('ws://localhost:3001');
-// Listen for post processing status
+// Configure Redis for optimal performance
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    connectTimeout: 60000,
+    lazyConnect: true,
+  },
+  retry_strategy: (times) => Math.min(times * 50, 2000)
+});
 ```
 
-3. **Search Service** - Search Results:
+#### 3. Worker Optimization
 ```javascript
-const ws = new WebSocket('ws://localhost:3002?searchId=YOUR_SEARCH_ID');
-// Listen for search completion
+// Adjust worker concurrency based on resources
+channel.prefetch(1); // Process one message at a time
+// Increase for better throughput if resources allow
 ```
 
-## 🤖 AI-Powered Features
+## 🔄 Deployment & Scaling
 
-### Content Processing
-- **Automatic Transcription**: Videos and audio files are transcribed using Gemini AI
-- **Text Chunking**: Content is split into semantic chunks for better search
-- **Vector Embeddings**: All content is converted to embeddings for similarity search
-- **Background Processing**: All AI operations happen asynchronously via RabbitMQ
-
-### Intelligent Search
-- **Query Refinement**: User queries are enhanced with AI for better results
-- **Semantic Search**: Uses vector similarity rather than keyword matching
-- **Contextual Responses**: AI generates responses using relevant content as context
-- **Multi-modal**: Searches across articles, video transcripts, and audio content
-
-## 🔧 Key Features
-
-### Security
-- JWT-based authentication with refresh tokens
-- Redis-based session invalidation
-- Rate limiting on all endpoints
-- Input validation with Zod schemas
-- SQL injection protection via Sequelize ORM
-
-### Scalability
-- Microservices architecture
-- Message queue-based async processing
-- Docker containerization
-- Load balancing with Traefik
-- Horizontal scaling ready
-
-### Monitoring & Logging
-- Structured logging with Winston
-- Daily log rotation
-- Comprehensive error handling
-- Health check endpoints
-
-### Data Management
-- PostgreSQL with SSL support
-- Redis for caching and sessions
-- Cloudinary for media storage
-- Vector embeddings in Pinecone
-
-## 📁 Project Structure
-
-```
-professional-platform/
-├── auth-service/
-│   ├── src/
-│   │   ├── config/          # Database, Redis, RabbitMQ configs
-│   │   ├── controllers/     # Request handlers
-│   │   ├── middleware/      # Auth, validation middleware
-│   │   ├── models/          # Sequelize models
-│   │   ├── routes/          # Express routes
-│   │   ├── services/        # Business logic
-│   │   ├── utils/           # Utilities (logger)
-│   │   ├── websocket/       # WebSocket handling
-│   │   ├── workers/         # Background workers
-│   │   └── index.js         # Main entry point
-│   └── Dockerfile
-├── post-service/
-│   └── src/                 # Similar structure to auth-service
-├── search-service/
-│   └── src/                 # Similar structure to auth-service
-├── nginx/
-│   └── nginx.conf           # Nginx configuration
-├── docker-compose.yml       # Docker orchestration
-└── README.md
+### Production Deployment
+```yaml
+# docker-compose.prod.yml
+version: '3.8'
+services:
+  auth-api:
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
 ```
 
-## 🚨 Known Issues & Considerations
+### Horizontal Scaling
+```bash
+# Scale specific services
+docker-compose up -d --scale auth-api=3
+docker-compose up -d --scale post-worker=2
+docker-compose up -d --scale search-worker=2
+```
 
-1. **API Quota Management**: 
-   - Gemini API has rate limits; worker implements retry logic
-   - Large media files may consume significant quota
+### Load Balancing
+Traefik automatically load balances between multiple instances:
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.auth.rule=PathPrefix(`/auth`)"
+  - "traefik.http.services.auth.loadbalancer.server.port=3000"
+```
 
-2. **File Size Limits**:
-   - Cloudinary and Gemini have file size restrictions
-   - Current limit: ~10MB for transcription
+## 🤝 Contributing
 
-3. **Environment Dependencies**:
-   - Requires stable internet for external AI APIs
-   - Pinecone vector database requires active subscription
+### Development Workflow
+1. **Fork & Clone**
+```bash
+git clone <your-fork-url>
+cd professional-platform
+git checkout -b feature/your-feature-name
+```
 
-## 🔄 Deployment
+2. **Setup Development Environment**
+```bash
+# Install dependencies
+npm run install:all
 
-### Docker Production Deployment
-1. Update environment variables for production
-2. Use production-grade PostgreSQL and Redis instances  
-3. Configure proper SSL certificates
-4. Set up monitoring and backup strategies
-5. Scale services based on load
+# Start development environment
+docker-compose -f docker-compose.dev.yml up -d
+npm run dev:all
+```
 
-### Kubernetes (Future)
-The microservices architecture is designed to be Kubernetes-ready with minimal modifications.
+3. **Testing**
+```bash
+# Run unit tests
+npm test
+
+# Run integration tests  
+npm run test:integration
+
+# Test API endpoints
+npm run test:api
+```
+
+4. **Submit Changes**
+```bash
+git add .
+git commit -m "feat: add new search functionality"
+git push origin feature/your-feature-name
+# Create pull request
+```
+
+### Code Standards
+- **Prettier**: Code formatting
+- **Zod**: Input validation schemas
+- **Winston**: Structured logging
 
 
 
 
-## 🔮 Future Enhancements
+## 🙏 Acknowledgments
 
-- [ ] User-to-user messaging
-- [ ] Advanced search filters
-- [ ] Content recommendation system
-- [ ] Mobile app support
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-- [ ] Social features (likes, shares, comments)
-- [ ] Integration with professional platforms (LinkedIn)
+- **Google AI** - Gemini models for transcription and embeddings
+- **Pinecone** - Vector database for semantic search
+- **Cloudinary** - Media storage and processing
+- **LangChain** - Text processing and chunking utilities
+- **OpenSource Community** - All the amazing libraries that make this possible
 
+---
