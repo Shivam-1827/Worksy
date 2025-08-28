@@ -841,10 +841,11 @@ git push origin feature/your-feature-name
 ```
 
 ### Code Standards
+- **ESLint**: Code linting and formatting
 - **Prettier**: Code formatting
 - **Zod**: Input validation schemas
 - **Winston**: Structured logging
-
+- **Jest**: Unit and integration testing
 
 
 
@@ -857,3 +858,4 @@ git push origin feature/your-feature-name
 - **OpenSource Community** - All the amazing libraries that make this possible
 
 ---
+
