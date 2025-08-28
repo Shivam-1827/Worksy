@@ -513,7 +513,7 @@ ws.onmessage = (event) => {
 ## 🔄 RAG Processing Workflow
 
 ### Content Processing (Post Service → Embedding Worker)
-```mermaid
+```
 graph TD
     A[User uploads content] → B[Post Service validates]
     B → C[Store in PostgreSQL]
