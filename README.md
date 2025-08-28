@@ -531,7 +531,7 @@ graph TD
 ```
 
 ### Search Processing (Search Service → Search Worker)
-```mermaid
+```
 graph TD
     A[User submits query] → B[Search Service queues request]
     B → C[Search Worker processes]
