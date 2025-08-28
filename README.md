@@ -5,7 +5,7 @@ A sophisticated microservices-based platform for professional content sharing an
 ## 📁 Directory Structure
 
 ```
-professional-platform/
+Worksy/
 ├── README.md
 ├── docker-compose.yml
 ├── .env
