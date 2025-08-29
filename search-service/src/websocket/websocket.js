@@ -52,6 +52,7 @@ const setupWebSocketServer = (server) => {
           message: statusMessage,
           data,
         } = JSON.parse(message);
+        console.log(data);
         logger.info(
           `Received Redis message for searchId ${searchId} with status: ${status}`
         );

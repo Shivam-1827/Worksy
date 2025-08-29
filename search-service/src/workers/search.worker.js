@@ -47,19 +47,20 @@ const processSearchJob = async (msg) => {
         const context = pineconeMatches
           .map(
             (match) =>
-              `Content: ${match.metadata.content}\nURL: ${
-                match.metadata.mediaUrl || "N/A"
-              }\n`
+              `Content: ${match.metadata.title}\nTitle: ${
+                match.metadata.text
+              }\nURL: ${match.metadata.media_url || "N/A"}\n`
           )
           .join("\n\n");
+
 
         // Use the new llmService to get the response
         finalResult = await llmService.getResponse(query, context);
 
         // Extract video URLs from the matched metadata
         pineconeMatches.forEach((match) => {
-          if (match.metadata.postType === "VIDEO" && match.metadata.mediaUrl) {
-            videoLinks.push(match.metadata.mediaUrl);
+          if (match.metadata.post_type === "VIDEO" && match.metadata.media_url) {
+            videoLinks.push(match.metadata.media_url);
           }
         });
       } else {
@@ -69,6 +70,8 @@ const processSearchJob = async (msg) => {
           "No relevant context found."
         );
       }
+
+      logger.info(finalResult);
 
       // 4. Publish the final result to Redis for the client
       const resultPayload = {

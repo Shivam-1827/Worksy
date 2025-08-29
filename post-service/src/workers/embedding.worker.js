@@ -24,7 +24,7 @@ const crypto = require("crypto");
 // --- Gemini setup with Flash model for better quota usage ---
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const transcriptionModel = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash", // Use Flash instead of Pro for better quota usage
+  model: "gemini-1.5-flash", 
 });
 
 // --- Retry configuration ---
@@ -503,7 +503,6 @@ const startWorker = async () => {
 
     channel.consume("embedding_queue", processMessage, { noAck: false });
     logger.info("Embedding worker started and waiting for messages...");
-    logger.info("Using Gemini Flash model for better quota efficiency");
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
