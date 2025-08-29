@@ -34,11 +34,23 @@ const processSearchJob = async (msg) => {
       const refinedQuery = await geminiService.refineQuery(query);
       logger.info(`Refined query for search ID ${searchId}: "${refinedQuery}"`);
 
-      const queryVector = await geminiService.createEmbeddings(query);
+      const queryVector = await geminiService.createEmbeddings(refinedQuery);
+       logger.info(
+         `Generated embedding vector of length: ${queryVector.length}`
+       );
+
 
       // 2. Query Pinecone for the top 5 most similar posts
       const pineconeMatches = await pineconeService.fetch(queryVector, 5);
-
+        logger.info(`Pinecone returned ${pineconeMatches.length} matches`);
+       pineconeMatches.forEach((match, index) => {
+         logger.info(`Match ${index + 1}:`, {
+           score: match.score,
+           title: match.metadata?.title,
+           postType: match.metadata?.post_type,
+           textPreview: match.metadata?.text?.substring(0, 100) + "...",
+         });
+       });
       let finalResult;
       const videoLinks = [];
 

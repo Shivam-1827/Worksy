@@ -421,6 +421,13 @@ const processMessage = async (msg) => {
       );
     }
 
+    logger.info(`Sample stored vector data for post ${postId}:`, {
+      vectorId: pineconeVectors[0]?.id,
+      metadataKeys: Object.keys(pineconeVectors[0]?.metadata || {}),
+      textSample: pineconeVectors[0]?.metadata?.text?.substring(0, 100) + "...",
+      title: pineconeVectors[0]?.metadata?.title,
+    });
+
     logger.info(
       `Successfully stored ${pineconeVectors.length} embeddings for post ${postId} in Pinecone`
     );

@@ -25,6 +25,12 @@ class PineconeService {
 
       logger.info(`Found ${results.matches.length} matches.`);
 
+      results.matches.forEach((match, index) => {
+        logger.info(
+          `Match ${index + 1}: Score ${match.score}, ID: ${match.id}`
+        );
+      });
+
       const matches = results.matches.map((match) => ({
         id: match.id,
         score: match.score,
