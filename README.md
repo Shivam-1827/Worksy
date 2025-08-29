@@ -1,4 +1,4 @@
-# Professional Platform - Microservices RAG Application
+# Worksy - Microservices RAG Application
 
 A sophisticated microservices-based platform for professional content sharing and intelligent search, featuring advanced RAG (Retrieval-Augmented Generation) capabilities with real-time processing and WebSocket communications.
 
