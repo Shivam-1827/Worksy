@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-api
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-api
+  template:
+    metadata:
+      labels:
+        app: search-api
+    spec:
+      containers:
+      - name: search-api
+        image: shivam1886/search-service:latest
+        ports:
+        - containerPort: 3002
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

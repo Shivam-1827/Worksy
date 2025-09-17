@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worksy-config
+  namespace: worksy
+data:
+  NODE_ENV: "production"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  REDIS_URL: "redis://redis:6379"
+  CLOUDINARY_CLOUD_NAME: "diqbodgxr"
+  CLOUDINARY_API_KEY: "345815478453594"
+  PINECONE_INDEX: "worksy"
+  PINECONE_ENVIRONMENT: "us-east-1"
+  EMAIL_USER: "shiva182704@gmail.com"

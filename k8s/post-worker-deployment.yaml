@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: post-worker
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: post-worker
+  template:
+    metadata:
+      labels:
+        app: post-worker
+    spec:
+      containers:
+      - name: post-worker
+        image: shivam1886/post-service:latest
+        command: ["node", "src/workers/embedding.worker.js"]
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

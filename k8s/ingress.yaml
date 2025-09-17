@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: worksy-ingress
+  namespace: worksy
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-api-service
+            port:
+              number: 80
+      - path: /post
+        pathType: Prefix
+        backend:
+          service:
+            name: post-api-service
+            port:
+              number: 80
+      - path: /search
+        pathType: Prefix
+        backend:
+          service:
+            name: search-api-service
+            port:
+              number: 80

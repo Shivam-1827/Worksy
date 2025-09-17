@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-worker
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-worker
+  template:
+    metadata:
+      labels:
+        app: auth-worker
+    spec:
+      containers:
+      - name: auth-worker
+        image: shivam1886/auth-service:latest
+        command: ["node", "src/workers/email.worker.js"]
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

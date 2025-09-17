@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-api
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-api
+  template:
+    metadata:
+      labels:
+        app: auth-api
+    spec:
+      containers:
+      - name: auth-api
+        image: shivam1886/auth-service:latest # This will be updated by Jenkins
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

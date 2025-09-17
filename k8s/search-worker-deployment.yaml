@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-worker
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-worker
+  template:
+    metadata:
+      labels:
+        app: search-worker
+    spec:
+      containers:
+      - name: search-worker
+        image: shivam1886/search-service:latest
+        command: ["node", "src/workers/search.worker.js"]
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

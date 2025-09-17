@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: post-api
+  namespace: worksy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: post-api
+  template:
+    metadata:
+      labels:
+        app: post-api
+    spec:
+      containers:
+      - name: post-api
+        image: shivam1886/post-service:latest
+        ports:
+        - containerPort: 3001
+        envFrom:
+        - secretRef:
+            name: worksy-secrets
+        - configMapRef:
+            name: worksy-config

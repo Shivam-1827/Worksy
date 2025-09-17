@@ -43,7 +43,7 @@ class PostValidationMiddleware {
             zod.array(zod.string()),
           ])
           .optional(),
-        postType: zod.enum(["VIDEO", "AUDIO"]),
+        postType: zod.enum(["VIDEO", "AUDIO","PDF"]),
         mediaUrl: zod.string().url("Invalid media URL.").optional(),
         metadata: zod
           .object({

@@ -138,3 +138,8 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 /src/generated/prisma
+# Ignore secrets
+k8s/secrets.yaml
+*.env
+*.pem
+*.key
