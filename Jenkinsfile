@@ -16,7 +16,6 @@ pipeline {
         stage('Build & Push Images') {
             steps {
                 script {
-                    // *** THE FIX IS HERE ***
                     // Use an empty string '' for the URL to default to Docker Hub.
                     // The credential ID 'dockerhub-credentials' is used for authentication.
                     docker.withRegistry('', 'dockerhub-credentials') {
@@ -60,15 +59,16 @@ pipeline {
                             string(credentialsId: 'pinecone-api-key', variable: 'PINECONE_API_KEY_VAL'),
                             string(credentialsId: 'email-pass', variable: 'EMAIL_PASS_VAL')
                         ]) {
+                            // *** THE FIX IS HERE: Added single quotes around each variable ***
                             sh """
                             kubectl create secret generic worksy-secrets --namespace=worksy \\
-                                --from-literal=DATABASE_URL=${DATABASE_URL_VAL} \\
-                                --from-literal=ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET_VAL} \\
-                                --from-literal=REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET_VAL} \\
-                                --from-literal=CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET_VAL} \\
-                                --from-literal=GOOGLE_API_KEY=${GOOGLE_API_KEY_VAL} \\
-                                --from-literal=PINECONE_API_KEY=${PINECONE_API_KEY_VAL} \\
-                                --from-literal=EMAIL_PASS=${EMAIL_PASS_VAL} \\
+                                --from-literal=DATABASE_URL='${DATABASE_URL_VAL}' \\
+                                --from-literal=ACCESS_TOKEN_SECRET='${ACCESS_TOKEN_SECRET_VAL}' \\
+                                --from-literal=REFRESH_TOKEN_SECRET='${REFRESH_TOKEN_SECRET_VAL}' \\
+                                --from-literal=CLOUDINARY_API_SECRET='${CLOUDINARY_API_SECRET_VAL}' \\
+                                --from-literal=GOOGLE_API_KEY='${GOOGLE_API_KEY_VAL}' \\
+                                --from-literal=PINECONE_API_KEY='${PINECONE_API_KEY_VAL}' \\
+                                --from-literal=EMAIL_PASS='${EMAIL_PASS_VAL}' \\
                                 --dry-run=client -o yaml | kubectl apply -f -
                             """
                         }
