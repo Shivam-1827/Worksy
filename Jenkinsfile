@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // We only define non-secret variables here
-        DOCKER_REGISTRY = 'shivam1886' // e.g., 'docker.io/yourusername'
+        // Your Docker Hub username for tagging images correctly.
+        DOCKER_REGISTRY = 'shivam1886'
     }
 
     stages {
@@ -15,10 +15,11 @@ pipeline {
 
         stage('Build & Push Images') {
             steps {
-                // *** THE FIX IS HERE ***
-                // We load the credentials inside the 'steps' block where they are needed
                 script {
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'dockerhub-credentials') {
+                    // *** THE FIX IS HERE ***
+                    // Use an empty string '' for the URL to default to Docker Hub.
+                    // The credential ID 'dockerhub-credentials' is used for authentication.
+                    docker.withRegistry('', 'dockerhub-credentials') {
                         
                         // Build and push Auth Service
                         def authImage = docker.build("${DOCKER_REGISTRY}/auth-service:${env.BUILD_ID}", "-f auth-service/src/Dockerfile auth-service")
