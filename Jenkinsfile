@@ -2,30 +2,35 @@ pipeline {
     agent any
 
     environment {
+        // We only define non-secret variables here
         DOCKER_REGISTRY = 'docker.io/shivam1886' // e.g., 'docker.io/yourusername'
-        DOCKER_CREDENTIALS = credentials('some-random-dockerhub-credentials') // Jenkins credential ID for Docker Hub
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Push Docker Images') {
+        stage('Build & Push Images') {
             steps {
+                // *** THE FIX IS HERE ***
+                // We load the credentials inside the 'steps' block where they are needed
                 script {
-                    // List of services to build
-                    def services = ['auth-service', 'post-service', 'search-service']
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'dockerhub-credentials') {
+                        
+                        // Build and push Auth Service
+                        def authImage = docker.build("${DOCKER_REGISTRY}/auth-service:${env.BUILD_ID}", "-f auth-service/src/Dockerfile auth-service")
+                        authImage.push()
 
-                    services.each { service ->
-                        def imageName = "${DOCKER_REGISTRY}/${service}:${env.BUILD_ID}"
-                        docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS) {
-                            def customImage = docker.build(imageName, "-f ${service}/src/Dockerfile ${service}")
-                            customImage.push()
-                        }
+                        // Build and push Post Service
+                        def postImage = docker.build("${DOCKER_REGISTRY}/post-service:${env.BUILD_ID}", "-f post-service/src/Dockerfile post-service")
+                        postImage.push()
+                        
+                        // Build and push Search Service
+                        def searchImage = docker.build("${DOCKER_REGISTRY}/search-service:${env.BUILD_ID}", "-f search-service/src/Dockerfile search-service")
+                        searchImage.push()
                     }
                 }
             }
@@ -34,24 +39,17 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-
-                    // List of deployment files mapped to services
-                    def deployments = [
-                        'auth-service': ['auth-api-deployment.yaml', 'auth-worker-deployment.yaml'],
-                        'post-service': ['post-api-deployment.yaml', 'post-worker-deployment.yaml'],
-                        'search-service': ['search-api-deployment.yaml', 'search-worker-deployment.yaml']
-                    ]
-
-                    // Update image tags dynamically
-                    deployments.each { service, files ->
-                        files.each { file ->
-                            sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/${service}:${env.BUILD_ID}|g' k8s/${file}"
-                        }
-                    }
+                    // Update the image tags in the deployment files
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/auth-service:${env.BUILD_ID}|g' k8s/auth-api-deployment.yaml"
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/auth-service:${env.BUILD_ID}|g' k8s/auth-worker-deployment.yaml"
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/post-service:${env.BUILD_ID}|g' k8s/post-api-deployment.yaml"
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/post-service:${env.BUILD_ID}|g' k8s/post-worker-deployment.yaml"
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/search-service:${env.BUILD_ID}|g' k8s/search-api-deployment.yaml"
+                    sh "sed -i 's|image: .*|image: ${DOCKER_REGISTRY}/search-service:${env.BUILD_ID}|g' k8s/search-worker-deployment.yaml"
 
                     withKubeConfig([credentialsId: 'kubeconfig']) {
-
-                        // Create Kubernetes secrets securely
+                        
+                        // Securely Create Kubernetes Secret
                         withCredentials([
                             string(credentialsId: 'db-url', variable: 'DATABASE_URL_VAL'),
                             string(credentialsId: 'access-token-secret', variable: 'ACCESS_TOKEN_SECRET_VAL'),
@@ -73,20 +71,11 @@ pipeline {
                                 --dry-run=client -o yaml | kubectl apply -f -
                             """
                         }
-
-                        // Apply core Kubernetes manifests
-                        def k8sManifests = [
-                            'namespace.yaml',
-                            'configmap.yaml',
-                            'auth-api-deployment.yaml', 'auth-worker-deployment.yaml', 'auth-api-service.yaml',
-                            'post-api-deployment.yaml', 'post-worker-deployment.yaml', 'post-api-service.yaml',
-                            'search-api-deployment.yaml', 'search-worker-deployment.yaml', 'search-api-service.yaml',
-                            'ingress.yaml'
-                        ]
-
-                        k8sManifests.each { manifest ->
-                            sh "kubectl apply -f k8s/${manifest}"
-                        }
+                        
+                        // Apply Kubernetes manifests
+                        sh 'kubectl apply -f k8s/namespace.yaml'
+                        sh 'kubectl apply -f k8s/configmap.yaml'
+                        sh 'kubectl apply -f k8s/' // Apply all YAML files in the k8s directory
                     }
                 }
             }
