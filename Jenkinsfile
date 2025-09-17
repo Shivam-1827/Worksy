@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // We only define non-secret variables here
-        DOCKER_REGISTRY = 'docker.io/shivam1886' // e.g., 'docker.io/yourusername'
+        DOCKER_REGISTRY = 'shivam1886' // e.g., 'docker.io/yourusername'
     }
 
     stages {
