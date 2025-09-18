@@ -12,8 +12,7 @@ const llmService = require("../service/llm.service");
 const SEARCH_QUEUE = "search_queue";
 const RESULT_CHANNEL = "search_results_channel";
 
-// Add similarity threshold
-const SIMILARITY_THRESHOLD = 0.3; // Adjust based on your needs
+const SIMILARITY_THRESHOLD = 0.3; 
 
 const processSearchJob = async (msg) => {
   if (msg) {
@@ -24,19 +23,15 @@ const processSearchJob = async (msg) => {
     );
 
     try {
-      // 1. Try both original and refined query
       logger.info(`Original query: "${query}"`);
 
-      // First, try with the original query
       let queryVector = await geminiService.createEmbeddings(query);
       logger.info(
         `Generated embedding vector of length: ${queryVector.length}`
       );
 
-      // Query Pinecone with original query
-      let pineconeMatches = await pineconeService.fetch(queryVector, 10); // Get more results initially
+      let pineconeMatches = await pineconeService.fetch(queryVector, 10); 
 
-      // Log detailed similarity scores
       logger.info(
         `Pinecone returned ${pineconeMatches.length} matches for original query`
       );
@@ -50,7 +45,6 @@ const processSearchJob = async (msg) => {
         });
       });
 
-      // Filter matches by similarity threshold
       let goodMatches = pineconeMatches.filter(
         (match) => match.score >= SIMILARITY_THRESHOLD
       );
@@ -58,7 +52,6 @@ const processSearchJob = async (msg) => {
         `Found ${goodMatches.length} matches above threshold ${SIMILARITY_THRESHOLD}`
       );
 
-      // If no good matches with original query, try refined query
       if (goodMatches.length === 0) {
         logger.info(
           "No good matches with original query, trying refined query..."
@@ -91,7 +84,6 @@ const processSearchJob = async (msg) => {
         );
       }
 
-      // Try different similarity threshold if still no matches
       if (goodMatches.length === 0) {
         const lowerThreshold = 0.15;
         goodMatches = pineconeMatches.filter(
@@ -106,13 +98,10 @@ const processSearchJob = async (msg) => {
       const videoLinks = [];
 
       if (goodMatches.length > 0) {
-        // Take top 5 good matches
         const topMatches = goodMatches.slice(0, 5);
 
-        // Prepare context - match the format used during embedding creation
         const context = topMatches
           .map((match) => {
-            // Try to recreate the original format used during embedding
             const title = match.metadata?.title || "Untitled";
             const content = match.metadata?.text || "";
             return `Title: ${title}\n\nContent: ${content}`;
@@ -128,7 +117,6 @@ const processSearchJob = async (msg) => {
 
         finalResult = await llmService.getResponse(query, context);
 
-        // Extract video URLs
         topMatches.forEach((match) => {
           if (
             match.metadata?.post_type === "VIDEO" &&
@@ -149,7 +137,6 @@ const processSearchJob = async (msg) => {
         );
       }
 
-      // 4. Publish results
       const resultPayload = {
         searchId,
         status: "completed",

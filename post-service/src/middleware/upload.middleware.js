@@ -12,7 +12,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: (req, file) => {
-    let resource_type = "auto"; // Automatically detect file type
+    let resource_type = "auto";
     let folder = "professional-platform/uploads";
     if (file.mimetype.startsWith("video/")) {
       folder += "/videos";

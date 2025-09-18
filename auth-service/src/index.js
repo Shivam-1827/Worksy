@@ -13,13 +13,10 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 
-// Routes
 app.use("/api/v1/auth", authRoutes);
 
-// Database and Service connections
 const startServer = async () => {
   try {
     await connectDB();
@@ -27,7 +24,6 @@ const startServer = async () => {
     await connectRabbitMQ();
     await sequelize.sync();
 
-    // Setup WebSocket server after the main HTTP server is created
     setupWebSocketServer(server);
 
     server.listen(PORT, () => {

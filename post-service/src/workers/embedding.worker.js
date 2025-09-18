@@ -432,11 +432,9 @@ const processMessage = async (msg) => {
       `Successfully stored ${pineconeVectors.length} embeddings for post ${postId} in Pinecone`
     );
 
-    // Update post status to COMPLETED
     await PostService.updatePostStatus(postId, "COMPLETED");
     logger.info(`Post ${postId} processing completed successfully`);
 
-    // Send real-time update via Redis
     try {
       await redisClient.publish(
         "post_updates",
@@ -454,10 +452,8 @@ const processMessage = async (msg) => {
         `Failed to publish Redis update for post ${postId}:`,
         redisError
       );
-      // Don't fail the entire process if Redis publish fails
     }
 
-    // Acknowledge message
     getChannel().ack(msg);
     logger.info(`Message acknowledged for post ${postId}`);
   } catch (error) {
@@ -474,7 +470,6 @@ const processMessage = async (msg) => {
       if (postData?.postId) {
         await PostService.updatePostStatus(postData.postId, "FAILED");
 
-        // Send Redis update for failure
         await redisClient.publish(
           "post_updates",
           JSON.stringify({
@@ -491,12 +486,11 @@ const processMessage = async (msg) => {
       logger.error(`Failed to update post status to FAILED:`, updateError);
     }
 
-    // Acknowledge the message even if processing failed to avoid infinite retries
     getChannel().ack(msg);
   }
 };
 
-// --- Start Worker ---
+
 const startWorker = async () => {
   try {
     await connectRabbitMQ();
@@ -505,13 +499,12 @@ const startWorker = async () => {
     const channel = getChannel();
     await channel.assertQueue("embedding_queue", { durable: true });
 
-    // Set prefetch to process one message at a time to avoid overwhelming the API
     channel.prefetch(1);
 
     channel.consume("embedding_queue", processMessage, { noAck: false });
     logger.info("Embedding worker started and waiting for messages...");
 
-    // Handle graceful shutdown
+
     process.on("SIGINT", async () => {
       logger.info("Shutting down embedding worker...");
       try {

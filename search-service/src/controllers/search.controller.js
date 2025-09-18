@@ -1,4 +1,4 @@
-// src/api/controllers/search.controller.js
+
 const { v4: uuidv4 } = require("uuid");
 const { getChannel } = require("../config/rabbitmq");
 const logger = require("../utils/logger");
@@ -17,7 +17,6 @@ class SearchController {
       const searchId = uuidv4();
       const channel = getChannel();
 
-      // Publish the search query to the RabbitMQ queue
       channel.sendToQueue(
         "search_queue",
         Buffer.from(JSON.stringify({ query, searchId })),

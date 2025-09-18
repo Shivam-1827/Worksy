@@ -28,7 +28,7 @@ router.post(
   "/media",
   postRateLimiter,
   authenticateToken,
-  upload.single("file"), // 'file' is the key for the uploaded file
+  upload.single("file"),
   PostValidationMiddleware.validate(PostValidationMiddleware.createMediaSchema),
   postController.createPost
 );

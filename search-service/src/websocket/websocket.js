@@ -4,15 +4,13 @@ const WebSocket = require("ws");
 const { redisClient } = require("../config/redis");
 const logger = require("../utils/logger");
 
-const clients = new Map(); // Store WebSocket clients by search ID
-
+const clients = new Map(); 
 const setupWebSocketServer = (server) => {
   const wss = new WebSocket.Server({ server });
 
   wss.on("connection", (ws, req) => {
     logger.info("A client connected via WebSocket.");
 
-    // The client sends the searchId as a URL parameter
     const searchId = new URL(
       req.url,
       `http://${req.headers.host}`
@@ -40,7 +38,6 @@ const setupWebSocketServer = (server) => {
     });
   });
 
-  // Redis subscriber for real-time updates from the worker
   const subscriber = redisClient.duplicate();
   subscriber
     .connect()

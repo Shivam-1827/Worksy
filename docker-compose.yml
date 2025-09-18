@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-  # Traefik - Dynamic Reverse Proxy & Load Balancer
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -10,8 +9,8 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
     ports:
-      - "80:80" # expose HTTP
-      - "8081:8080" # Traefik dashboard (optional)
+      - "80:80"
+      - "8081:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
@@ -58,7 +57,7 @@ services:
       - "traefik.http.routers.auth.rule=PathPrefix(`/auth`)"
       - "traefik.http.services.auth.loadbalancer.server.port=3000"
 
-  # Auth Service Worker (not exposed via Traefik)
+  # Auth Service Worker 
   auth-worker:
     build:
       context: ./auth-service
@@ -107,7 +106,7 @@ services:
       - "traefik.http.routers.post.rule=PathPrefix(`/post`)"
       - "traefik.http.services.post.loadbalancer.server.port=3001"
 
-  # Post Service Worker (not exposed via Traefik)
+  # Post Service Worker
   post-worker:
     build:
       context: ./post-service
@@ -157,7 +156,7 @@ services:
       - "traefik.http.routers.search.rule=PathPrefix(`/search`)"
       - "traefik.http.services.search.loadbalancer.server.port=3002"
 
-  # Search Service Worker (not exposed via Traefik)
+  # Search Service Worker
   search-worker:
     build:
       context: ./search-service

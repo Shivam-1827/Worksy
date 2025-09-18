@@ -1,4 +1,4 @@
-// src/services/pinecone.service.js
+
 const { Pinecone } = require("@pinecone-database/pinecone");
 const logger = require("../utils/logger");
 

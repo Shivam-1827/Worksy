@@ -17,7 +17,6 @@ class PostService {
 
       logger.info(`Creating post of type ${postType} for user ${userId}`);
 
-      // --- Normalize tags ---
       let tags = professionalTags;
       if (typeof tags === "string") {
         try {
@@ -27,12 +26,11 @@ class PostService {
         }
       }
       if (!Array.isArray(tags)) tags = tags ? [tags] : [];
-      tags = tags.filter(Boolean); // remove empty strings
+      tags = tags.filter(Boolean); 
 
       let finalUrl;
       let finalMetadata = metadata || null;
 
-      // --- Handle file and mediaUrl priority ---
       if (file && (file.secure_url || file.path)) {
         finalUrl = file.secure_url || file.path;
         finalMetadata = {
@@ -62,12 +60,10 @@ class PostService {
         logger.info(`Using metadata URL: ${finalUrl}`);
       }
 
-      // --- Validate required media URL for non-ARTICLE ---
       if (postType !== "ARTICLE" && !finalUrl) {
         throw new Error(`File or mediaUrl is required for ${postType} posts.`);
       }
 
-      // --- Prepare post object ---
       const postObj = {
         userId,
         title,
@@ -104,8 +100,6 @@ class PostService {
         }
       }
 
-
-      // --- Queue media posts for embedding ---
       if ((postType === "VIDEO" || postType === "AUDIO") && finalUrl) {
         const channel = getChannel();
         if (!channel) {

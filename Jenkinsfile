@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Your Docker Hub username for tagging images correctly.
         DOCKER_REGISTRY = 'shivam1886'
     }
 
@@ -16,8 +15,6 @@ pipeline {
         stage('Build & Push Images') {
             steps {
                 script {
-                    // Use an empty string '' for the URL to default to Docker Hub.
-                    // The credential ID 'dockerhub-credentials' is used for authentication.
                     docker.withRegistry('', 'dockerhub-credentials') {
                         
                         // Build and push Auth Service

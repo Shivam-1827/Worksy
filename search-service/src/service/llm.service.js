@@ -1,11 +1,8 @@
-// src/services/llm.service.js
+
 const geminiService = require("./gemini.service");
 const logger = require("../utils/logger");
 
-/**
- * An abstraction layer for LLM-related services.
- * Currently just exports the GeminiService.
- */
+
 class LlmService {
   /**
    * Generates a response from the LLM based on a user query and context.

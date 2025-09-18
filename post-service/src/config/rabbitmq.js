@@ -5,12 +5,11 @@ let channel;
 
 async function connectRabbitMQ() {
   const maxRetries = 10;
-  const retryDelayMs = 5000; // 5 seconds
+  const retryDelayMs = 5000; 
   let retries = 0;
 
   while (retries < maxRetries) {
     try {
-      // Decide connection URL
       const rabbitUrl =
         process.env.RABBITMQ_URL_LOCAL ||
         process.env.RABBITMQ_URL_DOCKER ||
@@ -20,12 +19,12 @@ async function connectRabbitMQ() {
       const connection = await amqp.connect(rabbitUrl);
       channel = await connection.createChannel();
       await channel.assertQueue("otp_email_queue");
-      logger.info(`✅ RabbitMQ connected on ${rabbitUrl} and queue asserted`);
-      return; // Exit the loop on success
+      logger.info(`RabbitMQ connected on ${rabbitUrl} and queue asserted`);
+      return;
     } catch (error) {
       retries++;
       logger.warn(
-        `❌ RabbitMQ connection failed. Retrying in ${
+        `RabbitMQ connection failed. Retrying in ${
           retryDelayMs / 1000
         } seconds... (Attempt ${retries}/${maxRetries})`
       );
@@ -33,9 +32,8 @@ async function connectRabbitMQ() {
     }
   }
 
-  // If the loop finishes without a connection, it means all retries failed
   logger.error(
-    `❌ Unable to connect to RabbitMQ after ${maxRetries} attempts.`
+    `Unable to connect to RabbitMQ after ${maxRetries} attempts.`
   );
   process.exit(1);
 }

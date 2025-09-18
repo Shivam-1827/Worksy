@@ -14,10 +14,9 @@ const authenticateToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    // ⬇️ Block tokens issued before the last logout
     const lastLogoutAt = await redisClient.get(`lastLogoutAt:${decoded.id}`);
     if (lastLogoutAt) {
-      const iatMs = decoded.iat * 1000; // iat is in seconds
+      const iatMs = decoded.iat * 1000;
       if (iatMs <= Number(lastLogoutAt)) {
         return res
           .status(401)

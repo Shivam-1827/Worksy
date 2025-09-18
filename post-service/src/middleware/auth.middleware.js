@@ -12,7 +12,6 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    // This is the key part: using the shared secret to verify the token
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
         if (err) {
             logger.error(`Invalid access token: ${err.message}`);
@@ -20,8 +19,7 @@ const authenticateToken = (req, res, next) => {
                 message: "Invalid access token"
             });
         }
-        
-        // The token is valid, attach the user info to the request
+
         req.user = user;
         next();
     });

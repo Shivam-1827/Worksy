@@ -1,4 +1,3 @@
-// /post-service/controllers/post.controllers.js
 
 const postService = require("../services/post.service");
 const logger = require("../utils/logger");
@@ -17,10 +16,7 @@ class PostController {
         hasMetadata: !!postData.metadata,
       });
 
-      // Handle the case where file was pre-uploaded to Cloudinary
-      // and the URL is provided in metadata
       if (!file && postData.postType !== "ARTICLE" && postData.metadata?.url) {
-        // Create a file-like object from metadata
         file = {
           secure_url: postData.metadata.url,
           path: postData.metadata.url,
@@ -36,13 +32,11 @@ class PostController {
         );
       }
 
-      // Set mediaUrl in postData if we have a file
       if (file && (file.secure_url || file.path)) {
         postData.mediaUrl = file.secure_url || file.path;
         logger.info(`File data to be used: ${postData.mediaUrl}`);
       }
 
-      // Additional validation for media posts
       if (postData.postType === "VIDEO" || postData.postType === "AUDIO") {
         if (!file && !postData.mediaUrl && !postData.metadata?.url) {
           logger.error(
@@ -54,7 +48,6 @@ class PostController {
         }
       }
 
-      // Pass the data to the service
       const post = await postService.createPost(postData, file);
 
       logger.info(`Post created successfully: ${post.id}`);
@@ -67,7 +60,6 @@ class PostController {
       logger.error("Create post failed:", error.message);
       logger.error("Full error:", error);
 
-      // Return more specific error messages
       if (error.message.includes("File data or mediaUrl is required")) {
         return res.status(400).json({
           error: "Media upload required",

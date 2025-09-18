@@ -44,9 +44,8 @@ const logFormat = winston.format.combine(
   })
 );
 
-// Daily rotate transport for combined logs
 const dailyRotateTransport = new DailyRotateFile({
-  dirname: path.join(__dirname, "../../logs/archived"), // archived folder
+  dirname: path.join(__dirname, "../../logs/archived"),
   filename: "%DATE%-app.log",
   datePattern: "YYYY-MM-DD",
   zippedArchive: true,
@@ -65,7 +64,6 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({ format: logFormat }),
 
-    // Error logs only (archived)
     new DailyRotateFile({
       dirname: path.join(__dirname, "../../logs/archived"),
       filename: "%DATE%-error.log",

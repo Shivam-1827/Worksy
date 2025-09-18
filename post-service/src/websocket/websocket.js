@@ -1,10 +1,9 @@
-// /post-service/utils/websocket.js
 
 const WebSocket = require("ws");
 const { redisClient } = require("../config/redis");
 const logger = require("../utils/logger");
 
-const clients = new Map(); // Store WebSocket clients by their user ID
+const clients = new Map(); 
 
 const setupWebSocketServer = (server) => {
   const wss = new WebSocket.Server({ server });
@@ -12,9 +11,7 @@ const setupWebSocketServer = (server) => {
   wss.on("connection", (ws, req) => {
     logger.info("A client connected via WebSocket.");
 
-    // For a secure, real-world application, you would pass a JWT token
-    // and extract the user ID here to identify the client.
-    const userId = req.headers["x-user-id"]; // This is a placeholder for a real auth method
+    const userId = req.headers["x-user-id"]; 
 
     if (userId) {
       clients.set(userId, ws);
@@ -29,7 +26,6 @@ const setupWebSocketServer = (server) => {
       logger.info(
         `Received WebSocket message from client ${userId}: ${message}`
       );
-      // This is where you might handle real-time chat or other client-side messages
     });
 
     ws.on("close", () => {
@@ -42,7 +38,6 @@ const setupWebSocketServer = (server) => {
     });
   });
 
-  // Redis subscriber for real-time updates from the worker
   const subscriber = redisClient.duplicate();
   subscriber
     .connect()

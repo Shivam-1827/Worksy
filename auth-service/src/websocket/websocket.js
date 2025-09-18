@@ -33,7 +33,6 @@ const setupWebSocketServer = (server) => {
     .connect()
     .then(() => {
       subscriber.subscribe("otp_status", (message) => {
-        // Updated to receive clientId from the worker message
         const { eventId, status, error, clientId } = JSON.parse(message);
         logger.info(
           `Received redis message for even ${eventId} with status: ${status}`

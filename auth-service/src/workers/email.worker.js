@@ -2,7 +2,6 @@ const { connectRabbitMQ, getChannel } = require("../config/rabbitmq");
 const { redisClient } = require("../config/redis");
 const logger = require("../utils/logger");
 const nodemailer = require("nodemailer");
-// require("dotenv").config();
 
 require("dotenv").config({
   path: require("path").resolve(__dirname, "../../.env"),
@@ -13,27 +12,23 @@ console.log(process.env.EMAIL_PASS);
 
 async function startWorker() {
   try {
-    // ✅ Ensure Redis is connected before using it
     if (!redisClient.isOpen) {
       await redisClient.connect();
       logger.info("Redis connected in email worker");
     }
 
-    // ✅ Check if email credentials are present
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       throw new Error("Missing EMAIL_USER or EMAIL_PASS environment variables");
     }
 
-    // ✅ Setup nodemailer transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Should be Google App Password
+        pass: process.env.EMAIL_PASS,
       },
     });
 
-    // ✅ Connect to RabbitMQ
     await connectRabbitMQ();
     const channel = getChannel();
 
@@ -44,7 +39,6 @@ async function startWorker() {
         const { email, otp, eventId } = JSON.parse(msg.content.toString());
 
         try {
-          // Send email
           await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
@@ -57,17 +51,15 @@ async function startWorker() {
             `,
           });
 
-          logger.info(`✅ OTP email sent to ${email}. Notifying via Redis...`);
+          logger.info(`OTP email sent to ${email}. Notifying via Redis...`);
 
-          // Notify via Redis
           await redisClient.publish(
             "otp_status",
             JSON.stringify({ eventId, status: "completed" })
           );
         } catch (error) {
-          logger.error(`❌ Error sending email to ${email}: ${error.message}`);
+          logger.error(`Error sending email to ${email}: ${error.message}`);
 
-          // Notify failure
           await redisClient.publish(
             "otp_status",
             JSON.stringify({
@@ -77,13 +69,13 @@ async function startWorker() {
             })
           );
         } finally {
-          channel.ack(msg); // ✅ Acknowledge message no matter what
+          channel.ack(msg);
         }
       }
     });
   } catch (error) {
     logger.error(`Worker startup error: ${error.message}`);
-    process.exit(1); // Exit worker if startup fails
+    process.exit(1); 
   }
 }
 

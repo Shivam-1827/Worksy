@@ -29,7 +29,6 @@ class GeminiService {
     }
   }
 
-  // New method to refine the user's search query
   async refineQuery(query) {
     try {
       logger.info("Refining user query with LLM...");

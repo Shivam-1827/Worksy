@@ -1,4 +1,3 @@
-// /post-service/middleware/post.validation.middleware.js
 
 const zod = require("zod");
 const logger = require("../utils/logger");
@@ -58,19 +57,18 @@ class PostValidationMiddleware {
       file: zod
         .object({
           path: zod.string().optional(),
-          secure_url: zod.string().optional(), // For Cloudinary uploads
-          public_id: zod.string().optional(), // For Cloudinary uploads
+          secure_url: zod.string().optional(), 
+          public_id: zod.string().optional(), 
           originalname: zod.string().optional(),
-          original_filename: zod.string().optional(), // Cloudinary field
+          original_filename: zod.string().optional(),
           mimetype: zod.string().optional(),
           size: zod.number().optional(),
-          bytes: zod.number().optional(), // Cloudinary field
-          format: zod.string().optional(), // Cloudinary field
+          bytes: zod.number().optional(), 
+          format: zod.string().optional(), 
         })
         .optional(),
     })
     .superRefine(({ body, file }, ctx) => {
-      // More flexible validation logic
       const hasUploadedFile = file && (file.secure_url || file.path);
       const hasMediaUrl = body.mediaUrl;
       const hasMetadataUrl = body.metadata && body.metadata.url;

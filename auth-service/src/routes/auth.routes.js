@@ -14,11 +14,9 @@ const {
 
 const authenticateToken = require("../middleware/auth.middleware");
 
-
-// This rate limiter is for the public0facing authentication routes
 const authRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,  // 15 minutes
-    max: 100,  //max 100 request per 15 mins
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: 'Too many login attemps for this IP, plear try again after 15 minutes',
     standardHeaders: true,
     legacyHeaders:false,

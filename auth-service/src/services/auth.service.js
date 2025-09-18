@@ -67,7 +67,7 @@ class AuthService {
       const accessToken = AuthService.generateAccessToken(user);
       const refreshToken = AuthService.generateRefreshToken(user);
 
-      //    invalidate old token and save the new refresh token
+      
       await redisClient.set(`refreshToken:${user.id}`, refreshToken, {
         EX: 604800,
       });
@@ -107,14 +107,12 @@ class AuthService {
 
   async logout(userId) {
     try {
-      // Remove the stored refresh token
       await redisClient.del(`refreshToken:${userId}`);
 
-      // Mark all existing access tokens as invalid going forward
       await redisClient.set(
         `lastLogoutAt:${userId}`,
         Date.now().toString(),
-        { EX: 60 * 60 * 24 * 7 } // keep for 7 days (match your refresh TTL)
+        { EX: 60 * 60 * 24 * 7 } 
       );
 
       logger.info(`User logged out successfully: ${userId}`);
@@ -203,10 +201,8 @@ class AuthService {
       const otp = AuthService.generateOTP();
       const eventId = uuidv4();
 
-      // saving otp to redis with a 10-minute expiration
       await redisClient.set(`otp:${email}`, otp, { EX: 600 });
 
-      // publishing message to the rabbitmq for the worker to process;
       const channel = getChannel();
       channel.sendToQueue(
         "otp_email_queue",
